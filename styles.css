@@ -1,119 +1,226 @@
-* {
-  box-sizing: border-box;
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #FAFAFA;
+  --bg-content: #F5F5F4;
+  --surface: #FFFFFF;
+  --surface-2: #F2F2F0;
+  --border: #E2E2E0;
+  --text: #262626;
+  --text-muted: #8A8A87;
+  --accent: #5ea4c8;
+  --accent-dark: #3E7C9C;
+  --accent-tint: rgba(94, 164, 200, 0.14);
+  --ok: #7A9B6E;
+  --warn: #C9A876;
+  --stop: #B4695A;
+  --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  --font-display: 'Jost', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
+
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
   min-height: 100vh;
-  background: #FAFAFA;
-  color: #262626;
-  font-family: 'Inter', sans-serif;
 }
 
 h1, h2, h3 {
-  font-family: 'Jost', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   margin: 0;
 }
 
-.view {
+/* ---------- Login ---------- */
+
+#loginView {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
 }
 
-/* Login */
-#loginView {
+.login-hero {
+  flex: 0 0 60%;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 60px 90px;
+  background-image: url('Imagens/login-bg.jpeg');
+  background-size: cover;
+  background-position: center;
+}
+
+.login-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.login-hero .login-mark,
+.login-hero h1 {
+  position: relative;
+  z-index: 1;
+}
+
+.login-hero .login-mark {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 3px;
+  margin-bottom: 24px;
+}
+
+.login-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  letter-spacing: 0.005em;
+  line-height: 1.25;
+  color: #FFFFFF;
+  max-width: 560px;
+  margin: 0;
+}
+
+.login-panel {
+  flex: 0 0 40%;
+  min-height: 100vh;
+  background: var(--surface-2);
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
 }
 
 .login-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  padding: 48px 40px;
-  max-width: 420px;
   width: 100%;
-  text-align: center;
+  max-width: 360px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 40px 32px;
 }
 
-.login-card h1 {
-  font-size: 28px;
-  color: #262626;
-}
-
-.subtitle {
-  color: #666666;
-  margin: 12px 0 32px;
-  font-size: 15px;
+.login-card h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  margin: 0 0 28px;
+  line-height: 1.25;
 }
 
 .btn-primary {
-  background: #5ea4c8;
+  width: 100%;
+  background: var(--text);
   color: #FFFFFF;
   border: none;
-  border-radius: 10px;
-  padding: 14px 24px;
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  padding: 13px 20px;
+  font-family: var(--font-body);
   font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 3px;
   cursor: pointer;
-  width: 100%;
-  transition: background 0.15s ease;
 }
 
-.btn-primary:hover {
-  background: #4c8fb3;
+.btn-primary:hover { background: var(--accent-dark); }
+
+#loginError {
+  color: var(--stop);
+  font-size: 13px;
+  margin-top: 14px;
+  min-height: 1em;
 }
 
-.btn-secondary {
-  background: transparent;
-  color: #5ea4c8;
-  border: 1px solid #5ea4c8;
-  border-radius: 10px;
-  padding: 10px 18px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
+@media (max-width: 800px) {
+  #loginView { flex-direction: column; }
+
+  .login-hero {
+    flex: none;
+    min-height: 260px;
+    padding: 0 28px 32px;
+  }
+
+  .login-hero h1 { font-size: 28px; }
+
+  .login-panel {
+    flex: none;
+    min-height: 0;
+    padding: 32px 20px;
+  }
 }
 
-.btn-secondary:hover {
-  background: rgba(94, 164, 200, 0.1);
+/* ---------- App shell ---------- */
+
+#demandasView {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-content);
 }
 
-.error-message {
-  margin-top: 20px;
-  color: #c0392b;
-  font-size: 14px;
-}
-
-/* Header */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #FFFFFF;
-  border-bottom: 1px solid #EEEEEE;
-  padding: 20px 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-.app-header h1 {
-  font-size: 22px;
-  color: #262626;
+.app-logo {
+  width: 170px;
+  height: auto;
+  margin-right: 16px;
 }
 
-/* Cards */
+.app-header h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--text);
+  flex: 1;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  border: none;
+  color: var(--text);
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover { color: var(--accent-dark); }
+
+/* ---------- Cards ---------- */
+
 .cards-wrapper {
   flex: 1;
-  padding: 32px;
+  padding: 22px;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
@@ -126,15 +233,11 @@ h1, h2, h3 {
 }
 
 .demanda-card {
-  background: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background: var(--surface);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
   padding: 20px 24px;
-  transition: box-shadow 0.15s ease;
-}
-
-.demanda-card:hover {
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -145,19 +248,20 @@ h1, h2, h3 {
 }
 
 .card-numero {
-  font-family: 'Jost', sans-serif;
-  font-weight: 600;
-  font-size: 18px;
-  color: #262626;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--accent-dark);
 }
 
 .card-categoria {
-  background: rgba(94, 164, 200, 0.12);
-  color: #5ea4c8;
+  background: var(--accent-tint);
+  color: var(--accent-dark);
   border-radius: 999px;
   padding: 4px 12px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .card-body {
@@ -166,8 +270,8 @@ h1, h2, h3 {
 
 .card-cliente {
   margin: 0;
-  color: #444444;
-  font-size: 15px;
+  color: var(--text);
+  font-size: 14px;
 }
 
 .card-footer {
@@ -176,30 +280,28 @@ h1, h2, h3 {
 }
 
 .btn-ver-pdf {
-  background: #5ea4c8;
-  color: #FFFFFF;
+  background: var(--surface-2);
+  color: var(--text);
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   padding: 8px 16px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
 }
 
-.btn-ver-pdf:hover {
-  background: #4c8fb3;
-}
+.btn-ver-pdf:hover { color: var(--accent-dark); }
 
 .empty-message {
   text-align: center;
-  color: #999999;
+  color: var(--text-muted);
   padding: 48px 0;
-  font-size: 15px;
+  font-size: 14px;
 }
 
-/* PDF Modal */
+/* ---------- PDF Modal ---------- */
+
 .pdf-modal {
   position: fixed;
   inset: 0;
@@ -212,13 +314,13 @@ h1, h2, h3 {
 }
 
 .pdf-modal-content {
-  background: #FFFFFF;
-  border-radius: 14px;
+  background: var(--surface);
+  border-radius: 20px;
   width: 100%;
   max-width: 900px;
   height: 90vh;
   position: relative;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -233,7 +335,7 @@ h1, h2, h3 {
   top: 12px;
   right: 12px;
   z-index: 2;
-  background: #FFFFFF;
+  background: var(--surface);
   border: none;
   border-radius: 50%;
   width: 36px;
@@ -242,7 +344,7 @@ h1, h2, h3 {
   line-height: 1;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  color: #262626;
+  color: var(--text);
 }
 
 [hidden] {

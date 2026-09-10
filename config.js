@@ -15,13 +15,7 @@ const CONFIG = {
     url: "Linkpdf2"
   },
   acessoPorSetor: {
-    "seccionadora@minimaldesign.com.br": "Seccionadora",
-    "coladeira@minimaldesign.com.br": "Coladeira",
-    "cnc@minimaldesign.com.br": "CNC",
-    "borda@minimaldesign.com.br": "Borda",
-    "montagem@minimaldesign.com.br": "Montagem",
-    "metalurgia@minimaldesign.com.br": "Metalurgia",
-    "tapecaria@minimaldesign.com.br": "Tapeçaria",
-    "embalagem@minimaldesign.com.br": "Embalagem"
+    "aline.silva@minimaldesign.com.br": "Seccionadora",
+    "eduardo.souza@minimaldesign.com.br": "Embalagem"
   }
 };

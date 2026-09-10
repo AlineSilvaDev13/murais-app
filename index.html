@@ -4,24 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mural de Produção</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="Imagens/%C3%8DCONE%20SITE.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <section id="loginView" class="view">
-    <div class="login-card">
-      <h1>Mural de Produção</h1>
-      <p class="subtitle">Acompanhe as demandas do seu setor</p>
-      <button id="loginBtn" class="btn-primary">Entrar com Microsoft</button>
-      <p id="loginError" class="error-message" hidden></p>
+    <div class="login-hero">
+      <span class="login-mark">MINIMAL</span>
+      <h1>Produção, do chão de fábrica ao administrativo.</h1>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-card">
+        <h2>Entrar</h2>
+        <button id="loginBtn" class="btn-primary">Entrar com Microsoft</button>
+        <div id="loginError"></div>
+      </div>
     </div>
   </section>
 
   <section id="demandasView" class="view" hidden>
     <header class="app-header">
+      <img src="Imagens/LOGO%20MINIMAL.jpg" class="app-logo" alt="MINIMAL">
       <h1 id="setorNome">Setor</h1>
       <button id="logoutBtn" class="btn-secondary">Sair</button>
     </header>
