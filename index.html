@@ -43,24 +43,9 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
   <script>
-    (function loadMsal(src, fallback) {
-      var script = document.createElement('script');
-      script.src = src;
-      script.onerror = function () {
-        if (fallback) {
-          var fb = document.createElement('script');
-          fb.src = fallback;
-          fb.onload = function () { document.dispatchEvent(new Event('msal-ready')); };
-          document.head.appendChild(fb);
-        }
-      };
-      script.onload = function () { document.dispatchEvent(new Event('msal-ready')); };
-      document.head.appendChild(script);
-    })(
-      'https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js',
-      'https://alcdn.msftauth.net/browser/2.35.0/js/msal-browser.min.js'
-    );
+  if (typeof msal === 'undefined') document.write(unescape("%3Cscript src='https://alcdn.msftauth.net/browser/2.35.0/js/msal-browser.min.js' type='text/javascript'%3E%3C/script%3E"));
   </script>
   <script src="app.js"></script>
 </body>
