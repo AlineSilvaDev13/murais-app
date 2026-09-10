@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mural de Produção</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <section id="loginView" class="view">
+    <div class="login-card">
+      <h1>Mural de Produção</h1>
+      <p class="subtitle">Acompanhe as demandas do seu setor</p>
+      <button id="loginBtn" class="btn-primary">Entrar com Microsoft</button>
+      <p id="loginError" class="error-message" hidden></p>
+    </div>
+  </section>
+
+  <section id="demandasView" class="view" hidden>
+    <header class="app-header">
+      <h1 id="setorNome">Setor</h1>
+      <button id="logoutBtn" class="btn-secondary">Sair</button>
+    </header>
+    <main class="cards-wrapper">
+      <div id="demandasCards" class="cards-list"></div>
+    </main>
+  </section>
+
+  <div id="pdfModal" class="pdf-modal" hidden>
+    <div class="pdf-modal-content">
+      <button id="closePdfBtn" class="btn-close">&times;</button>
+      <iframe id="pdfFrame" title="Visualização do PDF"></iframe>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    (function loadMsal(src, fallback) {
+      var script = document.createElement('script');
+      script.src = src;
+      script.onerror = function () {
+        if (fallback) {
+          var fb = document.createElement('script');
+          fb.src = fallback;
+          fb.onload = function () { document.dispatchEvent(new Event('msal-ready')); };
+          document.head.appendChild(fb);
+        }
+      };
+      script.onload = function () { document.dispatchEvent(new Event('msal-ready')); };
+      document.head.appendChild(script);
+    })(
+      'https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js',
+      'https://alcdn.msftauth.net/browser/2.35.0/js/msal-browser.min.js'
+    );
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

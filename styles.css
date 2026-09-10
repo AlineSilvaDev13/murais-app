@@ -1,0 +1,250 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #FAFAFA;
+  color: #262626;
+  font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Jost', sans-serif;
+  font-weight: 600;
+  margin: 0;
+}
+
+.view {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Login */
+#loginView {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 48px 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-card h1 {
+  font-size: 28px;
+  color: #262626;
+}
+
+.subtitle {
+  color: #666666;
+  margin: 12px 0 32px;
+  font-size: 15px;
+}
+
+.btn-primary {
+  background: #5ea4c8;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #4c8fb3;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #5ea4c8;
+  border: 1px solid #5ea4c8;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(94, 164, 200, 0.1);
+}
+
+.error-message {
+  margin-top: 20px;
+  color: #c0392b;
+  font-size: 14px;
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #FFFFFF;
+  border-bottom: 1px solid #EEEEEE;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.app-header h1 {
+  font-size: 22px;
+  color: #262626;
+}
+
+/* Cards */
+.cards-wrapper {
+  flex: 1;
+  padding: 32px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demanda-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  padding: 20px 24px;
+  transition: box-shadow 0.15s ease;
+}
+
+.demanda-card:hover {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-numero {
+  font-family: 'Jost', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: #262626;
+}
+
+.card-categoria {
+  background: rgba(94, 164, 200, 0.12);
+  color: #5ea4c8;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-body {
+  margin-bottom: 16px;
+}
+
+.card-cliente {
+  margin: 0;
+  color: #444444;
+  font-size: 15px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-ver-pdf {
+  background: #5ea4c8;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-ver-pdf:hover {
+  background: #4c8fb3;
+}
+
+.empty-message {
+  text-align: center;
+  color: #999999;
+  padding: 48px 0;
+  font-size: 15px;
+}
+
+/* PDF Modal */
+.pdf-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.pdf-modal-content {
+  background: #FFFFFF;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.pdf-modal-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.btn-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background: #FFFFFF;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #262626;
+}
+
+[hidden] {
+  display: none !important;
+}
