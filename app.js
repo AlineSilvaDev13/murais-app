@@ -44,8 +44,7 @@ async function getToken() {
     const result = await msalInstance.acquireTokenSilent(request);
     return result.accessToken;
   } catch (err) {
-    const result = await msalInstance.acquireTokenPopup(request);
-    return result.accessToken;
+    await msalInstance.acquireTokenRedirect(request);
   }
 }
 
@@ -69,10 +68,7 @@ async function graphFetch(path, options = {}) {
 async function handleLogin() {
   loginError.hidden = true;
   try {
-    const result = await msalInstance.loginPopup(loginRequest);
-    currentAccount = result.account;
-    msalInstance.setActiveAccount(currentAccount);
-    await afterLogin();
+    await msalInstance.loginRedirect(loginRequest);
   } catch (err) {
     showLoginError("Falha ao entrar com Microsoft. Tente novamente.");
     console.error(err);
@@ -214,6 +210,12 @@ function closePdfModal() {
 }
 
 (async function init() {
+  const response = await msalInstance.handleRedirectPromise();
+  if (response) {
+    currentAccount = response.account;
+    msalInstance.setActiveAccount(currentAccount);
+  }
+
   const accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
     currentAccount = accounts[0];
