@@ -18,6 +18,7 @@ let currentSetor = null;
 let siteId = null;
 let pedidosListId = null;
 let programacaoListId = null;
+let documentosListId = null;
 
 const loginView = document.getElementById("loginView");
 const demandasView = document.getElementById("demandasView");
@@ -100,23 +101,26 @@ async function afterLogin() {
   await carregarDemandas();
 }
 
+async function resolveListId(displayName) {
+  const listsRes = await graphFetch(`/sites/${siteId}/lists?$select=id,displayName`);
+  const lists = (await listsRes.json()).value;
+  const list = lists.find(l => l.displayName === displayName);
+
+  if (!list) {
+    throw new Error(`Não foi possível localizar a lista "${displayName}" no SharePoint`);
+  }
+
+  return list.id;
+}
+
 async function resolveSiteAndLists() {
   const siteRes = await graphFetch(`/sites/${CONFIG.hostname}:${CONFIG.sitePath}`);
   const site = await siteRes.json();
   siteId = site.id;
 
-  const listsRes = await graphFetch(`/sites/${siteId}/lists?$select=id,displayName`);
-  const lists = (await listsRes.json()).value;
-
-  const pedidosList = lists.find(l => l.displayName === CONFIG.pedidosListDisplayName);
-  const programacaoList = lists.find(l => l.displayName === CONFIG.programacaoListDisplayName);
-
-  if (!pedidosList || !programacaoList) {
-    throw new Error("Não foi possível localizar as listas do SharePoint");
-  }
-
-  pedidosListId = pedidosList.id;
-  programacaoListId = programacaoList.id;
+  pedidosListId = await resolveListId(CONFIG.pedidosListDisplayName);
+  programacaoListId = await resolveListId(CONFIG.programacaoListDisplayName);
+  documentosListId = await resolveListId("Documentos");
 }
 
 async function carregarDemandas() {
@@ -244,7 +248,7 @@ async function carregarPdfDoCard(pedido, card) {
   try {
     const itemId = typeof linkField === "object" ? linkField.Id || linkField.id : linkField;
     const contentRes = await graphFetch(
-      `/sites/${siteId}/lists/${pedidosListId}/items/${itemId}/driveItem/content`
+      `/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`
     );
     const blob = await contentRes.blob();
     const blobUrl = URL.createObjectURL(blob);

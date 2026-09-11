@@ -292,6 +292,11 @@ h1, h2, h3 {
   margin: 0;
   color: var(--text);
   font-size: 14px;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .card-prazo {
