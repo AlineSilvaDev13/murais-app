@@ -11,7 +11,7 @@ const msalConfig = {
 };
 
 const msalInstance = new msal.PublicClientApplication(msalConfig);
-const loginRequest = { scopes: ["User.Read", "Sites.Read.All"] };
+const loginRequest = { scopes: ["User.Read", "Sites.ReadWrite.All", "Files.ReadWrite.All"] };
 
 let currentAccount = null;
 let currentSetor = null;
