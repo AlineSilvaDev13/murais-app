@@ -210,9 +210,9 @@ function closePdfModal() {
 }
 
 (async function init() {
-  const response = await msalInstance.handleRedirectPromise();
-  if (response) {
-    currentAccount = response.account;
+  const redirectResponse = await msalInstance.handleRedirectPromise();
+  if (redirectResponse) {
+    currentAccount = redirectResponse.account;
     msalInstance.setActiveAccount(currentAccount);
   }
 
