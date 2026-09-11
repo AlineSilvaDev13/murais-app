@@ -266,7 +266,7 @@ async function carregarPdfDoCard(pedido, card) {
     );
     const blob = await contentRes.blob();
     const blobUrl = URL.createObjectURL(blob);
-    iframe.src = blobUrl;
+    iframe.src = blobUrl + "#toolbar=0&view=FitH";
     iframe.hidden = false;
     placeholder.hidden = true;
   } catch (err) {
