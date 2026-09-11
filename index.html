@@ -43,13 +43,18 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js" onload="document.dispatchEvent(new Event('msal-ready'))"></script>
+  <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
   <script>
-  document.addEventListener('msal-ready', function () {
-    var appScript = document.createElement('script');
-    appScript.src = 'app.js';
-    document.body.appendChild(appScript);
-  });
+    function aguardarMsalECarregarApp() {
+      if (typeof msal !== 'undefined') {
+        var appScript = document.createElement('script');
+        appScript.src = 'app.js';
+        document.body.appendChild(appScript);
+      } else {
+        setTimeout(aguardarMsalECarregarApp, 50);
+      }
+    }
+    aguardarMsalECarregarApp();
   </script>
 </body>
 </html>
