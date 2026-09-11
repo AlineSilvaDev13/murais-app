@@ -159,6 +159,9 @@ async function carregarDemandas() {
     return;
   }
 
+  const f = CONFIG.fields;
+  const demandas = [];
+
   for (const item of programacaoItems) {
     const pedidoLookupId = item.fields.PedidoLookupId;
     if (!pedidoLookupId) continue;
@@ -166,14 +169,24 @@ async function carregarDemandas() {
     try {
       const pedidoRes = await graphFetch(`/sites/${siteId}/lists/${pedidosListId}/items/${pedidoLookupId}?$expand=fields`);
       const pedido = (await pedidoRes.json()).fields;
-      renderCard(pedido, item);
+      demandas.push({ pedido, item });
     } catch (err) {
       console.error("Erro ao buscar pedido", pedidoLookupId, err);
     }
   }
+
+  demandas.sort((a, b) => {
+    const dataA = a.pedido[f.dataFabrica] ? new Date(a.pedido[f.dataFabrica]).getTime() : Infinity;
+    const dataB = b.pedido[f.dataFabrica] ? new Date(b.pedido[f.dataFabrica]).getTime() : Infinity;
+    return dataA - dataB;
+  });
+
+  demandas.forEach((demanda, index) => {
+    renderCard(demanda.pedido, demanda.item, index + 1);
+  });
 }
 
-function renderCard(pedido, item) {
+function renderCard(pedido, item, prioridade) {
   const f = CONFIG.fields;
   const card = document.createElement("article");
   card.className = "demanda-card";
@@ -206,6 +219,7 @@ function renderCard(pedido, item) {
   card.innerHTML = `
     <div class="card-travado-banner" ${travado ? "" : "hidden"}>TRAVADO: <span class="card-travado-motivo">${item.fields.MotivoParada || ""}</span></div>
     <div class="card-header">
+      <span class="badge-prioridade">${prioridade}</span>
       <span class="card-numero">#${numero}</span>
       <span class="badge-categoria ${isAt ? "badge-at" : ""}">${badgeTexto}</span>
     </div>

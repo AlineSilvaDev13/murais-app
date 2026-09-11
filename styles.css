@@ -229,7 +229,7 @@ h1, h2, h3 {
 .cards-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .demanda-card {
@@ -239,6 +239,9 @@ h1, h2, h3 {
   box-shadow: var(--card-shadow);
   padding: 20px 24px;
   position: relative;
+  min-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
 }
 
 .card-travado {
@@ -253,13 +256,17 @@ h1, h2, h3 {
   padding: 8px 24px;
   margin: -20px -24px 16px;
   border-radius: 18px 18px 0 0;
+  flex: none;
 }
 
 .card-header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 12px;
+  padding-right: 44px;
+  margin-bottom: 8px;
+  flex: none;
 }
 
 .card-numero {
@@ -284,8 +291,25 @@ h1, h2, h3 {
   color: #9A5B00;
 }
 
+.badge-prioridade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card-body {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex: none;
 }
 
 .card-cliente {
@@ -301,8 +325,9 @@ h1, h2, h3 {
 
 .card-prazo {
   margin: 6px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .card-atrasado {
@@ -314,7 +339,8 @@ h1, h2, h3 {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  height: 420px;
+  flex: 1;
+  min-height: 0;
   margin-bottom: 16px;
   background: var(--surface-2);
   display: flex;
@@ -339,6 +365,7 @@ h1, h2, h3 {
 .card-acoes {
   display: flex;
   gap: 12px;
+  flex: none;
 }
 
 .btn-finalizar {
