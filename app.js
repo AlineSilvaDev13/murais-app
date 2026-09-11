@@ -55,6 +55,7 @@ async function graphFetch(path, options = {}) {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
+      Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly",
       ...(options.headers || {})
     }
   });
