@@ -181,6 +181,22 @@ function renderCard(pedido, programacaoFields) {
   const numero = pedido[f.title] || "-";
   const cliente = pedido[f.cliente] || "-";
   const categoria = pedido[f.categoria2] || "-";
+  const dataFabrica = pedido[f.dataFabrica];
+
+  let prazoHtml = "";
+  if (dataFabrica) {
+    const prazo = new Date(dataFabrica);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const prazoSemHora = new Date(prazo);
+    prazoSemHora.setHours(0, 0, 0, 0);
+    const atrasado = prazoSemHora < hoje;
+
+    prazoHtml = `Prazo: ${prazo.toLocaleDateString("pt-BR")}`;
+    if (atrasado) {
+      prazoHtml += ' <span class="card-atrasado">• Atrasado</span>';
+    }
+  }
 
   card.innerHTML = `
     <div class="card-header">
@@ -189,6 +205,7 @@ function renderCard(pedido, programacaoFields) {
     </div>
     <div class="card-body">
       <p class="card-cliente">${cliente}</p>
+      ${prazoHtml ? `<p class="card-prazo">${prazoHtml}</p>` : ""}
     </div>
     <div class="card-footer">
       <button class="btn-ver-pdf">Ver PDF</button>

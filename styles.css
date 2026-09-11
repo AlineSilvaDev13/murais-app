@@ -274,6 +274,17 @@ h1, h2, h3 {
   font-size: 14px;
 }
 
+.card-prazo {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.card-atrasado {
+  color: var(--stop);
+  font-weight: 600;
+}
+
 .card-footer {
   display: flex;
   justify-content: flex-end;
