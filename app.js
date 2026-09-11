@@ -125,11 +125,33 @@ async function resolveSiteAndLists() {
 async function carregarDemandas() {
   demandasCardsEl.innerHTML = "";
 
-  const filter = `fields/Setor eq '${currentSetor}' and fields/Status eq 'Em Andamento'`;
+  const filter = `fields/Setor eq '${currentSetor}'`;
   const programacaoRes = await graphFetch(
     `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=${encodeURIComponent(filter)}`
   );
-  const programacaoItems = (await programacaoRes.json()).value;
+  const registros = (await programacaoRes.json()).value;
+
+  // Transição automática: registros "Programado" cuja DataProgramada já chegou
+  // (hoje ou antes) viram "Em Andamento" antes de filtrar o que será exibido.
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  for (const registro of registros) {
+    if (registro.fields.Status === "Programado" && registro.fields.DataProgramada) {
+      const dataProgramada = new Date(registro.fields.DataProgramada);
+      dataProgramada.setHours(0, 0, 0, 0);
+      if (dataProgramada <= hoje) {
+        await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${registro.id}/fields`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ Status: "Em Andamento" })
+        });
+        registro.fields.Status = "Em Andamento";
+      }
+    }
+  }
+
+  const programacaoItems = registros.filter((registro) => registro.fields.Status === "Em Andamento");
 
   if (programacaoItems.length === 0) {
     demandasCardsEl.innerHTML = '<p class="empty-message">Nenhuma demanda em andamento para o seu setor.</p>';
