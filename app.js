@@ -26,13 +26,9 @@ const logoutBtn = document.getElementById("logoutBtn");
 const loginError = document.getElementById("loginError");
 const setorNomeEl = document.getElementById("setorNome");
 const demandasCardsEl = document.getElementById("demandasCards");
-const pdfModal = document.getElementById("pdfModal");
-const pdfFrame = document.getElementById("pdfFrame");
-const closePdfBtn = document.getElementById("closePdfBtn");
 
 loginBtn.addEventListener("click", handleLogin);
 logoutBtn.addEventListener("click", handleLogout);
-closePdfBtn.addEventListener("click", closePdfModal);
 
 async function getToken() {
   const accounts = msalInstance.getAllAccounts();
@@ -166,14 +162,14 @@ async function carregarDemandas() {
     try {
       const pedidoRes = await graphFetch(`/sites/${siteId}/lists/${pedidosListId}/items/${pedidoLookupId}?$expand=fields`);
       const pedido = (await pedidoRes.json()).fields;
-      renderCard(pedido, item.fields);
+      renderCard(pedido, item);
     } catch (err) {
       console.error("Erro ao buscar pedido", pedidoLookupId, err);
     }
   }
 }
 
-function renderCard(pedido, programacaoFields) {
+function renderCard(pedido, item) {
   const f = CONFIG.fields;
   const card = document.createElement("article");
   card.className = "demanda-card";
@@ -182,6 +178,9 @@ function renderCard(pedido, programacaoFields) {
   const cliente = pedido[f.cliente] || "-";
   const categoria = pedido[f.categoria2] || "-";
   const dataFabrica = pedido[f.dataFabrica];
+
+  const isAt = categoria === "AT";
+  const badgeTexto = categoria && categoria !== "-" ? categoria : "-";
 
   let prazoHtml = "";
   if (dataFabrica) {
@@ -198,31 +197,47 @@ function renderCard(pedido, programacaoFields) {
     }
   }
 
+  const travado = item.fields.Status === "Parado";
+
   card.innerHTML = `
+    <div class="card-travado-banner" ${travado ? "" : "hidden"}>TRAVADO: <span class="card-travado-motivo">${item.fields.MotivoParada || ""}</span></div>
     <div class="card-header">
       <span class="card-numero">#${numero}</span>
-      <span class="card-categoria">${categoria}</span>
+      <span class="badge-categoria ${isAt ? "badge-at" : ""}">${badgeTexto}</span>
     </div>
     <div class="card-body">
       <p class="card-cliente">${cliente}</p>
       ${prazoHtml ? `<p class="card-prazo">${prazoHtml}</p>` : ""}
     </div>
-    <div class="card-footer">
-      <button class="btn-ver-pdf">Ver PDF</button>
+    <div class="card-pdf-wrap">
+      <div class="pdf-placeholder">Carregando PDF...</div>
+      <iframe class="card-pdf-frame" hidden></iframe>
+    </div>
+    <div class="card-acoes">
+      <button class="btn-finalizar">✓ FINALIZAR</button>
+      <button class="btn-travar">🔒 TRAVAR</button>
     </div>
   `;
 
-  const btnPdf = card.querySelector(".btn-ver-pdf");
-  btnPdf.addEventListener("click", () => abrirPdf(pedido));
+  if (travado) {
+    card.classList.add("card-travado");
+  }
+
+  card.querySelector(".btn-finalizar").addEventListener("click", () => handleFinalizar(item, card));
+  card.querySelector(".btn-travar").addEventListener("click", () => handleTravar(item, card));
 
   demandasCardsEl.appendChild(card);
+  carregarPdfDoCard(pedido, card);
 }
 
-async function abrirPdf(pedido) {
+async function carregarPdfDoCard(pedido, card) {
   const f = CONFIG.fields;
   const linkField = pedido[f.url];
+  const placeholder = card.querySelector(".pdf-placeholder");
+  const iframe = card.querySelector(".card-pdf-frame");
+
   if (!linkField) {
-    alert("Este pedido não possui PDF vinculado.");
+    placeholder.textContent = "Este pedido não possui PDF vinculado.";
     return;
   }
 
@@ -233,19 +248,70 @@ async function abrirPdf(pedido) {
     );
     const blob = await contentRes.blob();
     const blobUrl = URL.createObjectURL(blob);
-    pdfFrame.src = blobUrl;
-    pdfModal.hidden = false;
+    iframe.src = blobUrl;
+    iframe.hidden = false;
+    placeholder.hidden = true;
   } catch (err) {
     console.error(err);
-    alert("Não foi possível carregar o PDF.");
+    placeholder.textContent = "Não foi possível carregar o PDF.";
   }
 }
 
-function closePdfModal() {
-  pdfModal.hidden = true;
-  if (pdfFrame.src) {
-    URL.revokeObjectURL(pdfFrame.src);
-    pdfFrame.src = "";
+async function handleFinalizar(item, card) {
+  const codigo = window.prompt("Digite o código de confirmação:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
+  }
+
+  try {
+    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        Status: "Concluído",
+        DataConclusao: new Date().toISOString()
+      })
+    });
+    card.remove();
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível finalizar o pedido.");
+  }
+}
+
+async function handleTravar(item, card) {
+  const codigo = window.prompt("Digite o código de confirmação:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
+  }
+
+  const motivo = window.prompt("Motivo da parada:");
+  if (motivo === null) return;
+
+  try {
+    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        Status: "Parado",
+        MotivoParada: motivo
+      })
+    });
+
+    item.fields.Status = "Parado";
+    item.fields.MotivoParada = motivo;
+
+    card.classList.add("card-travado");
+    const banner = card.querySelector(".card-travado-banner");
+    banner.hidden = false;
+    banner.querySelector(".card-travado-motivo").textContent = motivo;
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível travar o pedido.");
   }
 }
 
