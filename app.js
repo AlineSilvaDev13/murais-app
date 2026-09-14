@@ -247,28 +247,60 @@ function renderCard(pedido, item, prioridade) {
   carregarPdfDoCard(pedido, card);
 }
 
-async function renderizarPdfNoCanvas(blob, containerEl) {
+async function configurarVisualizadorPdf(blob, containerEl) {
   const arrayBuffer = await blob.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const containerWidth = containerEl.clientWidth;
+  let paginaAtual = 1;
 
   containerEl.innerHTML = "";
 
-  for (let numPagina = 1; numPagina <= pdf.numPages; numPagina++) {
-    const page = await pdf.getPage(numPagina);
+  const canvas = document.createElement("canvas");
+  canvas.className = "card-pdf-canvas";
+  containerEl.appendChild(canvas);
+
+  const navegacao = document.createElement("div");
+  navegacao.className = "pdf-navegacao";
+  navegacao.innerHTML = `
+    <button class="pdf-nav-btn pdf-anterior">‹</button>
+    <span class="pdf-pagina-indicador">1 / ${pdf.numPages}</span>
+    <button class="pdf-nav-btn pdf-proxima">›</button>
+  `;
+  containerEl.appendChild(navegacao);
+
+  const indicador = navegacao.querySelector(".pdf-pagina-indicador");
+  const btnAnterior = navegacao.querySelector(".pdf-anterior");
+  const btnProxima = navegacao.querySelector(".pdf-proxima");
+
+  async function desenharPagina(numero) {
+    const page = await pdf.getPage(numero);
+    const containerWidth = containerEl.clientWidth;
     const viewportOriginal = page.getViewport({ scale: 1 });
     const escala = containerWidth / viewportOriginal.width;
     const viewport = page.getViewport({ scale: escala });
-
-    const canvas = document.createElement("canvas");
-    canvas.className = "card-pdf-canvas";
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    containerEl.appendChild(canvas);
-
     const context = canvas.getContext("2d");
     await page.render({ canvasContext: context, viewport: viewport }).promise;
+    indicador.textContent = `${numero} / ${pdf.numPages}`;
+    btnAnterior.disabled = numero <= 1;
+    btnProxima.disabled = numero >= pdf.numPages;
   }
+
+  btnAnterior.addEventListener("click", () => {
+    if (paginaAtual > 1) {
+      paginaAtual--;
+      desenharPagina(paginaAtual);
+    }
+  });
+
+  btnProxima.addEventListener("click", () => {
+    if (paginaAtual < pdf.numPages) {
+      paginaAtual++;
+      desenharPagina(paginaAtual);
+    }
+  });
+
+  await desenharPagina(paginaAtual);
 }
 
 async function carregarPdfDoCard(pedido, card) {
@@ -288,7 +320,7 @@ async function carregarPdfDoCard(pedido, card) {
       `/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`
     );
     const blob = await contentRes.blob();
-    await renderizarPdfNoCanvas(blob, wrap);
+    await configurarVisualizadorPdf(blob, wrap);
   } catch (err) {
     console.error(err);
     placeholder.textContent = "Não foi possível carregar o PDF.";
