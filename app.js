@@ -229,7 +229,6 @@ function renderCard(pedido, item, prioridade) {
     </div>
     <div class="card-pdf-wrap">
       <div class="pdf-placeholder">Carregando PDF...</div>
-      <canvas class="card-pdf-canvas"></canvas>
     </div>
     <div class="card-acoes">
       <button class="btn-finalizar">✓ FINALIZAR</button>
@@ -248,25 +247,35 @@ function renderCard(pedido, item, prioridade) {
   carregarPdfDoCard(pedido, card);
 }
 
-async function renderizarPdfNoCanvas(blob, canvasEl) {
+async function renderizarPdfNoCanvas(blob, containerEl) {
   const arrayBuffer = await blob.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const page = await pdf.getPage(1);
-  const containerWidth = canvasEl.parentElement.clientWidth;
-  const viewportOriginal = page.getViewport({ scale: 1 });
-  const escala = containerWidth / viewportOriginal.width;
-  const viewport = page.getViewport({ scale: escala });
-  canvasEl.width = viewport.width;
-  canvasEl.height = viewport.height;
-  const context = canvasEl.getContext('2d');
-  await page.render({ canvasContext: context, viewport: viewport }).promise;
+  const containerWidth = containerEl.clientWidth;
+
+  containerEl.innerHTML = "";
+
+  for (let numPagina = 1; numPagina <= pdf.numPages; numPagina++) {
+    const page = await pdf.getPage(numPagina);
+    const viewportOriginal = page.getViewport({ scale: 1 });
+    const escala = containerWidth / viewportOriginal.width;
+    const viewport = page.getViewport({ scale: escala });
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "card-pdf-canvas";
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    containerEl.appendChild(canvas);
+
+    const context = canvas.getContext("2d");
+    await page.render({ canvasContext: context, viewport: viewport }).promise;
+  }
 }
 
 async function carregarPdfDoCard(pedido, card) {
   const f = CONFIG.fields;
   const linkField = pedido[f.url];
+  const wrap = card.querySelector(".card-pdf-wrap");
   const placeholder = card.querySelector(".pdf-placeholder");
-  const canvas = card.querySelector(".card-pdf-canvas");
 
   if (!linkField) {
     placeholder.textContent = "Este pedido não possui PDF vinculado.";
@@ -279,9 +288,7 @@ async function carregarPdfDoCard(pedido, card) {
       `/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`
     );
     const blob = await contentRes.blob();
-    await renderizarPdfNoCanvas(blob, canvas);
-    canvas.hidden = false;
-    placeholder.hidden = true;
+    await renderizarPdfNoCanvas(blob, wrap);
   } catch (err) {
     console.error(err);
     placeholder.textContent = "Não foi possível carregar o PDF.";

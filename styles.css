@@ -338,18 +338,22 @@ h1, h2, h3 {
 .card-pdf-wrap {
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
   margin-bottom: 16px;
   background: var(--surface-2);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .card-pdf-canvas {
   width: 100%;
   height: auto;
   display: block;
+  margin-bottom: 8px;
 }
 
 .card-pdf-wrap .pdf-placeholder {
