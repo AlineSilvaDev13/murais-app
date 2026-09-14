@@ -126,7 +126,7 @@ async function resolveSiteAndLists() {
 async function carregarDemandas() {
   demandasCardsEl.innerHTML = "";
 
-  const filter = `fields/Setor eq '${currentSetor}'`;
+  const filter = `fields/Setor eq '${currentSetor}' and (fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')`;
   const programacaoRes = await graphFetch(
     `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=${encodeURIComponent(filter)}`
   );
@@ -152,7 +152,7 @@ async function carregarDemandas() {
     }
   }
 
-  const programacaoItems = registros.filter((registro) => registro.fields.Status === "Em Andamento");
+  const programacaoItems = registros.filter((registro) => registro.fields.Status === "Em Andamento" || registro.fields.Status === "Parado");
 
   if (programacaoItems.length === 0) {
     demandasCardsEl.innerHTML = '<p class="empty-message">Nenhuma demanda em andamento para o seu setor.</p>';

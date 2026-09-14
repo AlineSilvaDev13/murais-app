@@ -14,6 +14,7 @@
   --ok: #7A9B6E;
   --warn: #C9A876;
   --stop: #B4695A;
+  --travado: #D32F2F;
   --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 
   --font-display: 'Jost', sans-serif;
@@ -245,11 +246,11 @@ h1, h2, h3 {
 }
 
 .card-travado {
-  border: 2px solid var(--stop);
+  border: 2px solid var(--travado);
 }
 
 .card-travado-banner {
-  background: var(--stop);
+  background: var(--travado);
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 600;
