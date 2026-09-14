@@ -229,7 +229,7 @@ function renderCard(pedido, item, prioridade) {
     </div>
     <div class="card-pdf-wrap">
       <div class="pdf-placeholder">Carregando PDF...</div>
-      <iframe class="card-pdf-frame" hidden></iframe>
+      <canvas class="card-pdf-canvas"></canvas>
     </div>
     <div class="card-acoes">
       <button class="btn-finalizar">✓ FINALIZAR</button>
@@ -248,11 +248,27 @@ function renderCard(pedido, item, prioridade) {
   carregarPdfDoCard(pedido, card);
 }
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+
+async function renderizarPdfNoCanvas(blob, canvasEl) {
+  const arrayBuffer = await blob.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
+  const containerWidth = canvasEl.parentElement.clientWidth;
+  const viewportOriginal = page.getViewport({ scale: 1 });
+  const escala = containerWidth / viewportOriginal.width;
+  const viewport = page.getViewport({ scale: escala });
+  canvasEl.width = viewport.width;
+  canvasEl.height = viewport.height;
+  const context = canvasEl.getContext('2d');
+  await page.render({ canvasContext: context, viewport: viewport }).promise;
+}
+
 async function carregarPdfDoCard(pedido, card) {
   const f = CONFIG.fields;
   const linkField = pedido[f.url];
   const placeholder = card.querySelector(".pdf-placeholder");
-  const iframe = card.querySelector(".card-pdf-frame");
+  const canvas = card.querySelector(".card-pdf-canvas");
 
   if (!linkField) {
     placeholder.textContent = "Este pedido não possui PDF vinculado.";
@@ -265,9 +281,8 @@ async function carregarPdfDoCard(pedido, card) {
       `/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`
     );
     const blob = await contentRes.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    iframe.src = blobUrl + "#toolbar=0&view=FitH";
-    iframe.hidden = false;
+    await renderizarPdfNoCanvas(blob, canvas);
+    canvas.hidden = false;
     placeholder.hidden = true;
   } catch (err) {
     console.error(err);
