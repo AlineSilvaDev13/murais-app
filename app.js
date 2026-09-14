@@ -248,8 +248,6 @@ function renderCard(pedido, item, prioridade) {
   carregarPdfDoCard(pedido, card);
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
-
 async function renderizarPdfNoCanvas(blob, canvasEl) {
   const arrayBuffer = await blob.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

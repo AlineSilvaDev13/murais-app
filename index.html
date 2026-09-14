@@ -42,20 +42,24 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
   <script src="config.js"></script>
   <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
   <script>
-    function aguardarMsalECarregarApp() {
-      if (typeof msal !== 'undefined') {
+    function tudoPronto() {
+      return typeof msal !== 'undefined' && typeof pdfjsLib !== 'undefined';
+    }
+    function aguardarECarregarApp() {
+      if (tudoPronto()) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
         var appScript = document.createElement('script');
         appScript.src = 'app.js';
         document.body.appendChild(appScript);
       } else {
-        setTimeout(aguardarMsalECarregarApp, 50);
+        setTimeout(aguardarECarregarApp, 50);
       }
     }
-    aguardarMsalECarregarApp();
+    aguardarECarregarApp();
   </script>
 </body>
 </html>
