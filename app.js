@@ -328,10 +328,6 @@ async function carregarPdfDoCard(pedido, card) {
 }
 
 async function handleFinalizar(item, card) {
-  const respTeste = await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items?$top=1&$expand=fields`);
-  const dadosTeste = await respTeste.json();
-  console.log("CAMPOS DA PROGRAMAÇÃO:", JSON.stringify(dadosTeste.value[0].fields, null, 2));
-
   const codigo = window.prompt("Digite o código de confirmação:");
   if (codigo === null) return;
   if (codigo !== "000") {
