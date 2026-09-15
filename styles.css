@@ -437,6 +437,22 @@ h1, h2, h3 {
 
 .btn-travar:hover { background: var(--accent-tint); }
 
+.btn-destravar {
+  flex: 1;
+  background: transparent;
+  border: 2px solid var(--travado);
+  color: var(--travado);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.btn-destravar:hover { background: rgba(211, 47, 47, 0.1); }
+
 .empty-message {
   text-align: center;
   color: var(--text-muted);

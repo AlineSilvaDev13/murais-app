@@ -232,7 +232,7 @@ function renderCard(pedido, item, prioridade) {
     </div>
     <div class="card-acoes">
       <button class="btn-finalizar">✓ FINALIZAR</button>
-      <button class="btn-travar">🔒 TRAVAR</button>
+      <button class="${travado ? "btn-destravar" : "btn-travar"}">${travado ? "🔓 DESTRAVAR" : "🔒 TRAVAR"}</button>
     </div>
   `;
 
@@ -241,10 +241,24 @@ function renderCard(pedido, item, prioridade) {
   }
 
   card.querySelector(".btn-finalizar").addEventListener("click", () => handleFinalizar(item, card));
-  card.querySelector(".btn-travar").addEventListener("click", () => handleTravar(item, card));
+
+  const btnTravar = card.querySelector(".btn-travar, .btn-destravar");
+  vincularBotaoTravar(btnTravar, item, card, travado);
 
   demandasCardsEl.appendChild(card);
   carregarPdfDoCard(pedido, card);
+}
+
+function vincularBotaoTravar(btn, item, card, travado) {
+  if (travado) {
+    btn.className = "btn-destravar";
+    btn.textContent = "🔓 DESTRAVAR";
+    btn.onclick = () => handleDestravar(item, card, btn);
+  } else {
+    btn.className = "btn-travar";
+    btn.textContent = "🔒 TRAVAR";
+    btn.onclick = () => handleTravar(item, card, btn);
+  }
 }
 
 async function configurarVisualizadorPdf(blob, containerEl) {
@@ -355,7 +369,7 @@ async function handleFinalizar(item, card) {
   }
 }
 
-async function handleTravar(item, card) {
+async function handleTravar(item, card, btn) {
   const codigo = window.prompt("Digite o código de confirmação:");
   if (codigo === null) return;
   if (codigo !== "000") {
@@ -383,9 +397,44 @@ async function handleTravar(item, card) {
     const banner = card.querySelector(".card-travado-banner");
     banner.hidden = false;
     banner.querySelector(".card-travado-motivo").textContent = motivo;
+
+    vincularBotaoTravar(btn, item, card, true);
   } catch (err) {
     console.error(err);
     alert("Não foi possível travar o pedido.");
+  }
+}
+
+async function handleDestravar(item, card, btn) {
+  const codigo = window.prompt("Digite o código:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
+  }
+
+  try {
+    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        Status: "Em Andamento",
+        MotivoParada: ""
+      })
+    });
+
+    item.fields.Status = "Em Andamento";
+    item.fields.MotivoParada = "";
+
+    card.classList.remove("card-travado");
+    const banner = card.querySelector(".card-travado-banner");
+    banner.hidden = true;
+    banner.querySelector(".card-travado-motivo").textContent = "";
+
+    vincularBotaoTravar(btn, item, card, false);
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível destravar o pedido.");
   }
 }
 
