@@ -376,13 +376,11 @@ async function handleFinalizar(item, card) {
   const dadosTeste = await respTeste.json();
   console.log("CAMPOS DA PROGRAMAÇÃO:", JSON.stringify(dadosTeste.value[0].fields, null, 2));
 
-  if (!acessoTodos) {
-    const codigo = window.prompt("Digite o código de confirmação:");
-    if (codigo === null) return;
-    if (codigo !== "000") {
-      alert("Código incorreto");
-      return;
-    }
+  const codigo = window.prompt("Digite o código de confirmação:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
   }
 
   try {
@@ -402,13 +400,11 @@ async function handleFinalizar(item, card) {
 }
 
 async function handleTravar(item, card, btn) {
-  if (!acessoTodos) {
-    const codigo = window.prompt("Digite o código de confirmação:");
-    if (codigo === null) return;
-    if (codigo !== "000") {
-      alert("Código incorreto");
-      return;
-    }
+  const codigo = window.prompt("Digite o código de confirmação:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
   }
 
   const motivo = window.prompt("Motivo da parada:");
@@ -440,13 +436,11 @@ async function handleTravar(item, card, btn) {
 }
 
 async function handleDestravar(item, card, btn) {
-  if (!acessoTodos) {
-    const codigo = window.prompt("Digite o código:");
-    if (codigo === null) return;
-    if (codigo !== "000") {
-      alert("Código incorreto");
-      return;
-    }
+  const codigo = window.prompt("Digite o código:");
+  if (codigo === null) return;
+  if (codigo !== "000") {
+    alert("Código incorreto");
+    return;
   }
 
   try {
