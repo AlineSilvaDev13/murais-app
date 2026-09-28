@@ -116,11 +116,10 @@ function configurarSeletorDeSetor() {
   setorFiltroEl.innerHTML = opcoes.join("");
   setorFiltroEl.value = currentSetor;
   setorFiltroEl.hidden = false;
-  setorNomeEl.textContent = "Todos os setores";
+  setorNomeEl.hidden = true;
 
   setorFiltroEl.onchange = async () => {
     currentSetor = setorFiltroEl.value;
-    setorNomeEl.textContent = currentSetor === "Todos" ? "Todos os setores" : currentSetor;
     await carregarDemandas();
   };
 }
