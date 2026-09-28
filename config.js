@@ -19,5 +19,16 @@ const CONFIG = {
   acessoPorSetor: {
     "aline.silva@minimaldesign.com.br": "Todos",
     "eduardo.souza@minimaldesign.com.br": "Embalagem"
-  }
+  },
+  // Lista de murais/setores disponíveis pro seletor de quem tem acesso "Todos".
+  setores: [
+    "Seccionadora",
+    "Coladeira",
+    "CNC",
+    "Borda",
+    "Montagem",
+    "Metalurgia",
+    "Tapeçaria",
+    "Embalagem"
+  ]
 };

@@ -26,6 +26,7 @@ const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const loginError = document.getElementById("loginError");
 const setorNomeEl = document.getElementById("setorNome");
+const setorFiltroEl = document.getElementById("setorFiltro");
 const demandasCardsEl = document.getElementById("demandasCards");
 
 loginBtn.addEventListener("click", handleLogin);
@@ -92,13 +93,34 @@ async function afterLogin() {
   }
 
   currentSetor = setor;
-  setorNomeEl.textContent = setor === "Todos" ? "Todos os setores" : setor;
+
+  if (setor === "Todos") {
+    configurarSeletorDeSetor();
+  } else {
+    setorNomeEl.textContent = setor;
+  }
 
   loginView.hidden = true;
   demandasView.hidden = false;
 
   await resolveSiteAndLists();
   await carregarDemandas();
+}
+
+function configurarSeletorDeSetor() {
+  const opcoes = [`<option value="Todos">Todos os setores</option>`]
+    .concat(CONFIG.setores.map((s) => `<option value="${s}">${s}</option>`));
+
+  setorFiltroEl.innerHTML = opcoes.join("");
+  setorFiltroEl.value = currentSetor;
+  setorFiltroEl.hidden = false;
+  setorNomeEl.textContent = "Todos os setores";
+
+  setorFiltroEl.onchange = async () => {
+    currentSetor = setorFiltroEl.value;
+    setorNomeEl.textContent = currentSetor === "Todos" ? "Todos os setores" : currentSetor;
+    await carregarDemandas();
+  };
 }
 
 async function resolveListId(displayName) {
