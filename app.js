@@ -92,7 +92,7 @@ async function afterLogin() {
   }
 
   currentSetor = setor;
-  setorNomeEl.textContent = setor;
+  setorNomeEl.textContent = setor === "Todos" ? "Todos os setores" : setor;
 
   loginView.hidden = true;
   demandasView.hidden = false;
@@ -126,7 +126,8 @@ async function resolveSiteAndLists() {
 async function carregarDemandas() {
   demandasCardsEl.innerHTML = "";
 
-  const filter = `fields/Setor eq '${currentSetor}' and (fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')`;
+  const filtroSetor = currentSetor === "Todos" ? "" : `fields/Setor eq '${currentSetor}' and `;
+  const filter = `${filtroSetor}(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')`;
   const programacaoRes = await graphFetch(
     `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=${encodeURIComponent(filter)}`
   );
@@ -155,7 +156,10 @@ async function carregarDemandas() {
   const programacaoItems = registros.filter((registro) => registro.fields.Status === "Em Andamento" || registro.fields.Status === "Parado");
 
   if (programacaoItems.length === 0) {
-    demandasCardsEl.innerHTML = '<p class="empty-message">Nenhuma demanda em andamento para o seu setor.</p>';
+    const mensagemVazio = currentSetor === "Todos"
+      ? "Nenhuma demanda em andamento."
+      : "Nenhuma demanda em andamento para o seu setor.";
+    demandasCardsEl.innerHTML = `<p class="empty-message">${mensagemVazio}</p>`;
     return;
   }
 
@@ -216,12 +220,15 @@ function renderCard(pedido, item, prioridade) {
 
   const travado = item.fields.Status === "Parado";
 
+  const mostrarSetor = currentSetor === "Todos";
+
   card.innerHTML = `
     <div class="card-travado-banner" ${travado ? "" : "hidden"}>TRAVADO: <span class="card-travado-motivo">${item.fields.MotivoParada || ""}</span></div>
     <div class="card-header">
       <span class="badge-prioridade">${prioridade}</span>
       <span class="card-numero">#${numero}</span>
       <span class="badge-categoria ${isAt ? "badge-at" : ""}">${badgeTexto}</span>
+      ${mostrarSetor ? `<span class="card-setor">${item.fields.Setor || ""}</span>` : ""}
     </div>
     <div class="card-body">
       <p class="card-cliente">${cliente}</p>
