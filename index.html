@@ -28,11 +28,21 @@
     <header class="app-header">
       <img src="Imagens/LOGO%20MINIMAL.png" class="app-logo" alt="MINIMAL">
       <h1 id="setorNome">Setor</h1>
-      <select id="setorFiltro" class="setor-filtro" hidden></select>
+      <div id="filtrosAdmin" class="filtros-admin" hidden>
+        <select id="setorFiltro" class="setor-filtro"></select>
+        <input type="search" id="buscaPedido" class="busca-pedido" placeholder="Buscar nº do pedido ou cliente">
+        <select id="filtroTipo" class="setor-filtro">
+          <option value="todos">Todos os tipos</option>
+          <option value="AT">Somente AT</option>
+          <option value="normal">Pedidos normais</option>
+        </select>
+        <span id="contadorPedidos" class="contador-pedidos"></span>
+      </div>
       <button id="logoutBtn" class="btn-secondary">Sair</button>
     </header>
     <main class="cards-wrapper">
       <div id="demandasCards" class="cards-list"></div>
+      <p id="semResultados" class="empty-message" hidden>Nenhum pedido encontrado.</p>
     </main>
   </section>
 
