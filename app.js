@@ -47,18 +47,32 @@ const observadorPdf = new IntersectionObserver((entradas, observador) => {
 loginBtn.addEventListener("click", handleLogin);
 logoutBtn.addEventListener("click", handleLogout);
 
+let tokenEmMemoria = null;
+let tokenExpiraEm = 0;
+let tokenEmAndamento = null;
+
 async function getToken() {
+  if (tokenEmMemoria && Date.now() < tokenExpiraEm - 60000) return tokenEmMemoria;
+  if (tokenEmAndamento) return tokenEmAndamento;
+
   const accounts = msalInstance.getAllAccounts();
   const account = accounts[0];
   if (!account) throw new Error("Nenhuma conta autenticada");
 
   const request = { ...loginRequest, account };
-  try {
-    const result = await msalInstance.acquireTokenSilent(request);
-    return result.accessToken;
-  } catch (err) {
-    await msalInstance.acquireTokenRedirect(request);
-  }
+  tokenEmAndamento = (async () => {
+    try {
+      const result = await msalInstance.acquireTokenSilent(request);
+      tokenEmMemoria = result.accessToken;
+      tokenExpiraEm = result.expiresOn ? result.expiresOn.getTime() : Date.now() + 5 * 60000;
+      return tokenEmMemoria;
+    } catch (err) {
+      await msalInstance.acquireTokenRedirect(request);
+    } finally {
+      tokenEmAndamento = null;
+    }
+  })();
+  return tokenEmAndamento;
 }
 
 async function graphFetch(path, options = {}) {
@@ -118,9 +132,45 @@ async function afterLogin() {
 
   loginView.hidden = true;
   demandasView.hidden = false;
+  demandasCardsEl.innerHTML = '<p class="empty-message">Carregando pedidos...</p>';
 
-  await resolveSiteAndLists();
-  await carregarDemandas();
+  await iniciarMural();
+}
+
+async function iniciarMural() {
+  try {
+    await resolveSiteAndLists();
+    await carregarDemandas();
+  } catch (err) {
+    // IDs em cache podem ter ficado velhos (lista recriada): limpa e tenta uma vez do zero.
+    if (idsVieramDoCache) {
+      try { localStorage.removeItem(CACHE_IDS_KEY); } catch (e) { /* sem acesso ao storage */ }
+      try {
+        await resolveSiteAndLists();
+        await carregarDemandas();
+        return;
+      } catch (err2) {
+        err = err2;
+      }
+    }
+    console.error(err);
+    mostrarErroNoMural(err);
+  }
+}
+
+function mostrarErroNoMural(err) {
+  const detalhe = String((err && err.message) || err).slice(0, 300);
+  demandasCardsEl.innerHTML = "";
+  const aviso = document.createElement("div");
+  aviso.className = "empty-message";
+  aviso.innerHTML = `<p>Não foi possível carregar os pedidos.</p><p class="erro-detalhe"></p><button class="btn-secondary">Tentar novamente</button>`;
+  aviso.querySelector(".erro-detalhe").textContent = detalhe;
+  aviso.querySelector("button").onclick = () => {
+    demandasCardsEl.innerHTML = '<p class="empty-message">Carregando pedidos...</p>';
+    iniciarMural();
+  };
+  demandasCardsEl.appendChild(aviso);
+  semResultadosEl.hidden = true;
 }
 
 function configurarSeletorDeSetor() {
@@ -180,26 +230,57 @@ function aplicarFiltros() {
   semResultadosEl.hidden = visiveis !== 0;
 }
 
-async function resolveListId(displayName) {
-  const listsRes = await graphFetch(`/sites/${siteId}/lists?$select=id,displayName`);
-  const lists = (await listsRes.json()).value;
-  const list = lists.find(l => l.displayName === displayName);
+const CACHE_IDS_KEY = "murais_ids_v1";
+let idsVieramDoCache = false;
 
-  if (!list) {
-    throw new Error(`Não foi possível localizar a lista "${displayName}" no SharePoint`);
-  }
-
-  return list.id;
+function lerIdsEmCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_IDS_KEY));
+    if (c && c.hostname === CONFIG.hostname && c.sitePath === CONFIG.sitePath
+        && c.pedidosNome === CONFIG.pedidosListDisplayName && c.programacaoNome === CONFIG.programacaoListDisplayName
+        && c.siteId && c.pedidosListId && c.programacaoListId && c.documentosListId) {
+      return c;
+    }
+  } catch (e) { /* cache ausente ou inválido */ }
+  return null;
 }
 
+// Site e listas quase nunca mudam: guarda os IDs pra não refazer 4-5 chamadas a cada abertura.
 async function resolveSiteAndLists() {
-  const siteRes = await graphFetch(`/sites/${CONFIG.hostname}:${CONFIG.sitePath}`);
-  const site = await siteRes.json();
-  siteId = site.id;
+  const cache = lerIdsEmCache();
+  if (cache) {
+    siteId = cache.siteId;
+    pedidosListId = cache.pedidosListId;
+    programacaoListId = cache.programacaoListId;
+    documentosListId = cache.documentosListId;
+    idsVieramDoCache = true;
+    return;
+  }
 
-  pedidosListId = await resolveListId(CONFIG.pedidosListDisplayName);
-  programacaoListId = await resolveListId(CONFIG.programacaoListDisplayName);
-  documentosListId = await resolveListId("Documentos");
+  idsVieramDoCache = false;
+  const siteRes = await graphFetch(`/sites/${CONFIG.hostname}:${CONFIG.sitePath}`);
+  siteId = (await siteRes.json()).id;
+
+  const listas = await graphFetchTodasPaginas(`/sites/${siteId}/lists?$select=id,displayName`);
+  const achar = (nome) => {
+    const lista = listas.find((l) => l.displayName === nome);
+    if (!lista) throw new Error(`Não foi possível localizar a lista "${nome}" no SharePoint`);
+    return lista.id;
+  };
+
+  pedidosListId = achar(CONFIG.pedidosListDisplayName);
+  programacaoListId = achar(CONFIG.programacaoListDisplayName);
+  documentosListId = achar("Documentos");
+
+  try {
+    localStorage.setItem(CACHE_IDS_KEY, JSON.stringify({
+      hostname: CONFIG.hostname,
+      sitePath: CONFIG.sitePath,
+      pedidosNome: CONFIG.pedidosListDisplayName,
+      programacaoNome: CONFIG.programacaoListDisplayName,
+      siteId, pedidosListId, programacaoListId, documentosListId
+    }));
+  } catch (e) { /* sem acesso ao storage */ }
 }
 
 async function graphFetchTodasPaginas(path) {
@@ -214,43 +295,102 @@ async function graphFetchTodasPaginas(path) {
   return itens;
 }
 
-async function buscarPedidos(programacaoItems) {
-  const demandas = [];
-  const tamanhoLote = 10;
+// Busca vários itens de lista com o endpoint $batch (até 20 por chamada, 3 chamadas em paralelo).
+async function buscarPedidosEmLote(ids) {
+  const porId = new Map();
+  const tamanhoLote = 20;
+  const lotes = [];
+  for (let i = 0; i < ids.length; i += tamanhoLote) lotes.push(ids.slice(i, i + tamanhoLote));
 
-  for (let i = 0; i < programacaoItems.length; i += tamanhoLote) {
-    const lote = programacaoItems.slice(i, i + tamanhoLote);
-    const resultados = await Promise.all(lote.map(async (item) => {
-      const pedidoLookupId = item.fields.PedidoLookupId;
-      if (!pedidoLookupId) return null;
-
-      try {
-        const pedidoRes = await graphFetch(`/sites/${siteId}/lists/${pedidosListId}/items/${pedidoLookupId}?$expand=fields`);
-        const pedido = (await pedidoRes.json()).fields;
-        return { pedido, item };
-      } catch (err) {
-        console.error("Erro ao buscar pedido", pedidoLookupId, err);
-        return null;
-      }
-    }));
-    demandas.push(...resultados.filter(Boolean));
+  async function buscarIndividual(id) {
+    try {
+      const res = await graphFetch(`/sites/${siteId}/lists/${pedidosListId}/items/${id}?$expand=fields`);
+      porId.set(id, (await res.json()).fields);
+    } catch (err) {
+      console.error("Erro ao buscar pedido", id, err);
+    }
   }
 
-  return demandas;
+  async function processarLote(lote) {
+    try {
+      const res = await graphFetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: lote.map((id) => ({
+            id: String(id),
+            method: "GET",
+            url: `/sites/${siteId}/lists/${pedidosListId}/items/${id}?$expand=fields`
+          }))
+        })
+      });
+      const { responses } = await res.json();
+      const falhas = [];
+      const respondidos = new Set();
+      for (const r of responses) {
+        respondidos.add(r.id);
+        if (r.status === 200 && r.body && r.body.fields) {
+          porId.set(Number(r.id), r.body.fields);
+        } else if (r.status === 429 || r.status >= 500) {
+          falhas.push(Number(r.id));
+        } else {
+          console.error("Erro ao buscar pedido", r.id, r.status, r.body);
+        }
+      }
+      lote.filter((id) => !respondidos.has(String(id))).forEach((id) => falhas.push(id));
+      await Promise.all(falhas.map(buscarIndividual));
+    } catch (err) {
+      console.warn("Falha no $batch, buscando individualmente", err);
+      await Promise.all(lote.map(buscarIndividual));
+    }
+  }
+
+  const fila = lotes.slice();
+  await Promise.all(Array.from({ length: Math.min(3, fila.length) }, async () => {
+    while (fila.length) await processarLote(fila.shift());
+  }));
+
+  return porId;
+}
+
+async function buscarPedidos(programacaoItems) {
+  // O mesmo pedido costuma ter um registro por setor: busca cada pedido uma vez só.
+  const ids = [...new Set(programacaoItems.map((i) => Number(i.fields.PedidoLookupId)).filter(Boolean))];
+  const pedidos = await buscarPedidosEmLote(ids);
+
+  return programacaoItems
+    .map((item) => ({ pedido: pedidos.get(Number(item.fields.PedidoLookupId)), item }))
+    .filter((d) => d.pedido);
+}
+
+async function buscarRegistros() {
+  // Acesso "Todos" carrega todos os setores (inclusive os "Programado", ainda com data marcada) e filtra no navegador.
+  const statusBuscados = acessoTodos
+    ? "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado' or fields/Status eq 'Programado')"
+    : "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')";
+  const base = `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=`;
+  const consulta = (filtro) => graphFetchTodasPaginas(base + encodeURIComponent(filtro));
+
+  if (!acessoTodos) {
+    return consulta(`fields/Setor eq '${currentSetor}' and ${statusBuscados}`);
+  }
+
+  try {
+    return await consulta(statusBuscados);
+  } catch (err) {
+    // Consulta sem filtro de setor pode estourar o limite de lista grande do SharePoint: busca setor a setor.
+    console.warn("Consulta geral falhou, buscando setor a setor", err);
+    const grupos = await Promise.all(
+      CONFIG.setores.map((setor) => consulta(`fields/Setor eq '${setor}' and ${statusBuscados}`))
+    );
+    return grupos.flat();
+  }
 }
 
 async function carregarDemandas() {
   demandasCardsEl.innerHTML = "";
 
-  // Acesso "Todos" carrega todos os setores (inclusive os "Programado", ainda com data marcada) e filtra no navegador.
-  const statusBuscados = acessoTodos
-    ? "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado' or fields/Status eq 'Programado')"
-    : "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')";
-  const filtroSetor = acessoTodos ? "" : `fields/Setor eq '${currentSetor}' and `;
-  const filter = `${filtroSetor}${statusBuscados}`;
-  const registros = await graphFetchTodasPaginas(
-    `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=${encodeURIComponent(filter)}`
-  );
+  const registros = await buscarRegistros();
 
   if (acessoTodos) {
     preencherSetores(registros);
@@ -448,6 +588,25 @@ async function configurarVisualizadorPdf(blob, containerEl) {
   await desenharPagina(paginaAtual);
 }
 
+// O mesmo PDF aparece em vários cards (um por setor): baixa uma vez só, guardando os últimos 30.
+const pdfBlobCache = new Map();
+
+function obterPdfBlob(itemId) {
+  if (!pdfBlobCache.has(itemId)) {
+    const promessa = graphFetch(`/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`)
+      .then((res) => res.blob())
+      .catch((err) => {
+        pdfBlobCache.delete(itemId);
+        throw err;
+      });
+    pdfBlobCache.set(itemId, promessa);
+    if (pdfBlobCache.size > 30) {
+      pdfBlobCache.delete(pdfBlobCache.keys().next().value);
+    }
+  }
+  return pdfBlobCache.get(itemId);
+}
+
 async function carregarPdfDoCard(pedido, card) {
   const f = CONFIG.fields;
   const linkField = pedido[f.url];
@@ -461,10 +620,7 @@ async function carregarPdfDoCard(pedido, card) {
 
   try {
     const itemId = typeof linkField === "object" ? linkField.Id || linkField.id : linkField;
-    const contentRes = await graphFetch(
-      `/sites/${siteId}/lists/${documentosListId}/items/${itemId}/driveItem/content`
-    );
-    const blob = await contentRes.blob();
+    const blob = await obterPdfBlob(itemId);
     await configurarVisualizadorPdf(blob, wrap);
   } catch (err) {
     console.error(err);
@@ -473,10 +629,6 @@ async function carregarPdfDoCard(pedido, card) {
 }
 
 async function handleFinalizar(item, card) {
-  const respTeste = await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items?$top=1&$expand=fields`);
-  const dadosTeste = await respTeste.json();
-  console.log("CAMPOS DA PROGRAMAÇÃO:", JSON.stringify(dadosTeste.value[0].fields, null, 2));
-
   const codigo = window.prompt("Digite o código de confirmação:");
   if (codigo === null) return;
   if (codigo !== "000") {
