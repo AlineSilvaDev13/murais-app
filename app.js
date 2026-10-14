@@ -364,10 +364,9 @@ async function buscarPedidos(programacaoItems) {
 }
 
 async function buscarRegistros() {
-  // Acesso "Todos" carrega todos os setores (inclusive os "Programado", ainda com data marcada) e filtra no navegador.
-  const statusBuscados = acessoTodos
-    ? "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado' or fields/Status eq 'Programado')"
-    : "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado')";
+  // "Programado" entra na busca de todos: pra um setor, o pedido aparece a partir da DataProgramada (ver carregarDemandas).
+  // Acesso "Todos" carrega todos os setores e filtra no navegador.
+  const statusBuscados = "(fields/Status eq 'Em Andamento' or fields/Status eq 'Parado' or fields/Status eq 'Programado')";
   const base = `/sites/${siteId}/lists/${programacaoListId}/items?$expand=fields&$filter=`;
   const consulta = (filtro) => graphFetchTodasPaginas(base + encodeURIComponent(filtro));
 
@@ -396,24 +395,31 @@ async function carregarDemandas() {
     preencherSetores(registros);
   }
 
-  // Transição automática: registros "Programado" cuja DataProgramada já chegou
-  // (hoje ou antes) viram "Em Andamento" antes de filtrar o que será exibido.
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  // Mural de setor: registros "Programado" cuja DataProgramada chegou (hoje ou qualquer dia antes)
+  // viram "Em Andamento" e continuam aparecendo nos dias seguintes. Não bloqueia o mural se a gravação falhar.
+  if (!acessoTodos) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
-  for (const registro of registros) {
-    if (!acessoTodos && registro.fields.Status === "Programado" && registro.fields.DataProgramada) {
+    const aIniciar = registros.filter((registro) => {
+      if (registro.fields.Status !== "Programado" || !registro.fields.DataProgramada) return false;
       const dataProgramada = new Date(registro.fields.DataProgramada);
       dataProgramada.setHours(0, 0, 0, 0);
-      if (dataProgramada <= hoje) {
+      return dataProgramada <= hoje;
+    });
+
+    await Promise.all(aIniciar.map(async (registro) => {
+      registro.fields.Status = "Em Andamento";
+      try {
         await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${registro.id}/fields`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ Status: "Em Andamento" })
         });
-        registro.fields.Status = "Em Andamento";
+      } catch (err) {
+        console.error("Não foi possível gravar a mudança para Em Andamento", registro.id, err);
       }
-    }
+    }));
   }
 
   const statusExibidos = acessoTodos ? ["Em Andamento", "Parado", "Programado"] : ["Em Andamento", "Parado"];
