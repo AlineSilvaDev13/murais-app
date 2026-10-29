@@ -232,6 +232,51 @@ h1, h2, h3 {
   min-width: 220px;
 }
 
+.badge-grupo {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--accent-dark);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.grupo-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex: none;
+}
+
+.grupo-nav-btn {
+  background: var(--accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.grupo-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.grupo-indicador {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 110px;
+  text-align: center;
+}
+
 .erro-detalhe {
   font-size: 12px;
   word-break: break-word;

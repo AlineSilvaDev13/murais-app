@@ -216,7 +216,7 @@ function aplicarFiltros() {
   demandasCardsEl.querySelectorAll(".demanda-card").forEach((card) => {
     const okSetor = currentSetor === "Todos" || card.dataset.setor === currentSetor;
     const okBusca = !termo || card.dataset.busca.includes(termo);
-    const okTipo = tipo === "todos" || card.dataset.tipo === tipo;
+    const okTipo = tipo === "todos" || card.dataset.tipos.split(" ").includes(tipo);
     const mostrar = okSetor && okBusca && okTipo;
 
     card.hidden = !mostrar;
@@ -386,6 +386,23 @@ async function buscarRegistros() {
   }
 }
 
+// Cada pedido tem um registro por etapa/setor, quase todos "Programado" pro futuro: só entram no mural
+// os que estão em andamento/parados, os Programado cuja data já chegou e, pro acesso Todos, os Programado
+// de setores fora da fábrica (que não têm mural próprio).
+function deveExibirNoMural(registro) {
+  const { Status: status, Setor: setor, DataProgramada: dataProgramada } = registro.fields;
+  if (status === "Em Andamento" || status === "Parado") return true;
+  if (status !== "Programado" || !acessoTodos) return false;
+  if (!CONFIG.setores.includes(setor)) return true;
+  if (!dataProgramada) return false;
+
+  const data = new Date(dataProgramada);
+  data.setHours(0, 0, 0, 0);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return data <= hoje;
+}
+
 async function carregarDemandas() {
   demandasCardsEl.innerHTML = "";
 
@@ -422,8 +439,7 @@ async function carregarDemandas() {
     }));
   }
 
-  const statusExibidos = acessoTodos ? ["Em Andamento", "Parado", "Programado"] : ["Em Andamento", "Parado"];
-  const programacaoItems = registros.filter((registro) => statusExibidos.includes(registro.fields.Status));
+  const programacaoItems = registros.filter((registro) => deveExibirNoMural(registro));
 
   if (programacaoItems.length === 0 && !acessoTodos) {
     demandasCardsEl.innerHTML = '<p class="empty-message">Nenhuma demanda em andamento para o seu setor.</p>';
@@ -439,8 +455,27 @@ async function carregarDemandas() {
     return dataA - dataB;
   });
 
-  demandas.forEach((demanda, index) => {
-    renderCard(demanda.pedido, demanda.item, index + 1);
+  // Pedidos do mesmo GrupoPedido (2 ou mais no mesmo setor) viram UM card só, na posição do mais urgente,
+  // com botão pra passar de um PDF pro outro. Um pedido sozinho num grupo é um card normal.
+  const unidades = [];
+  const gruposPorChave = new Map();
+  demandas.forEach((demanda) => {
+    const nomeGrupo = String(demanda.pedido[f.grupo] || "").trim();
+    if (!nomeGrupo) {
+      unidades.push({ nomeGrupo: "", membros: [demanda] });
+      return;
+    }
+    const chave = `${nomeGrupo}||${demanda.item.fields.Setor || ""}`;
+    if (!gruposPorChave.has(chave)) {
+      const unidade = { nomeGrupo, membros: [] };
+      gruposPorChave.set(chave, unidade);
+      unidades.push(unidade);
+    }
+    gruposPorChave.get(chave).membros.push(demanda);
+  });
+
+  unidades.forEach((unidade, index) => {
+    renderCard(unidade, index + 1);
   });
 
   if (acessoTodos) {
@@ -448,59 +483,70 @@ async function carregarDemandas() {
   }
 }
 
-function renderCard(pedido, item, prioridade) {
+function preencherPrazo(el, dataFabrica) {
+  el.textContent = "";
+  el.hidden = !dataFabrica;
+  if (!dataFabrica) return;
+
+  const prazo = new Date(dataFabrica);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const prazoSemHora = new Date(prazo);
+  prazoSemHora.setHours(0, 0, 0, 0);
+
+  el.textContent = `Prazo: ${prazo.toLocaleDateString("pt-BR")}`;
+  if (prazoSemHora < hoje) {
+    const atrasado = document.createElement("span");
+    atrasado.className = "card-atrasado";
+    atrasado.textContent = " • Atrasado";
+    el.appendChild(atrasado);
+  }
+}
+
+function renderCard(unidade, prioridade) {
   const f = CONFIG.fields;
+  const { membros, nomeGrupo } = unidade;
+  const itens = membros.map((m) => m.item);
+  const primeiro = itens[0];
+  const emGrupo = membros.length >= 2;
+
   const card = document.createElement("article");
   card.className = "demanda-card";
 
-  const numero = pedido[f.title] || "-";
-  const cliente = pedido[f.cliente] || "-";
-  const categoria = pedido[f.categoria2] || "-";
-  const dataFabrica = pedido[f.dataFabrica];
-
-  const isAt = categoria === "AT";
-  const badgeTexto = categoria && categoria !== "-" ? categoria : "-";
-
-  let prazoHtml = "";
-  if (dataFabrica) {
-    const prazo = new Date(dataFabrica);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const prazoSemHora = new Date(prazo);
-    prazoSemHora.setHours(0, 0, 0, 0);
-    const atrasado = prazoSemHora < hoje;
-
-    prazoHtml = `Prazo: ${prazo.toLocaleDateString("pt-BR")}`;
-    if (atrasado) {
-      prazoHtml += ' <span class="card-atrasado">• Atrasado</span>';
-    }
-  }
-
-  const travado = item.fields.Status === "Parado";
-  const programado = item.fields.Status === "Programado";
-  const dataProgramada = item.fields.DataProgramada
-    ? new Date(item.fields.DataProgramada).toLocaleDateString("pt-BR")
+  const travado = itens.some((i) => i.fields.Status === "Parado");
+  const programado = itens.every((i) => i.fields.Status === "Programado");
+  const motivo = (itens.find((i) => i.fields.Status === "Parado") || primeiro).fields.MotivoParada || "";
+  const dataProgramada = primeiro.fields.DataProgramada
+    ? new Date(primeiro.fields.DataProgramada).toLocaleDateString("pt-BR")
     : "";
 
-  const mostrarSetor = acessoTodos;
-
-  card.dataset.setor = item.fields.Setor || "";
-  card.dataset.tipo = isAt ? "AT" : "normal";
-  card.dataset.busca = normalizarTexto(`${numero} ${cliente}`);
+  const tipos = new Set(membros.map((m) => (m.pedido[f.categoria2] === "AT" ? "AT" : "normal")));
+  card.dataset.setor = primeiro.fields.Setor || "";
+  card.dataset.tipos = [...tipos].join(" ");
+  card.dataset.busca = normalizarTexto(
+    membros.map((m) => `${m.pedido[f.title] || ""} ${m.pedido[f.cliente] || ""}`).join(" ") + (emGrupo ? ` ${nomeGrupo}` : "")
+  );
 
   card.innerHTML = `
-    <div class="card-travado-banner" ${travado ? "" : "hidden"}>TRAVADO: <span class="card-travado-motivo">${item.fields.MotivoParada || ""}</span></div>
+    <div class="card-travado-banner" hidden>TRAVADO: <span class="card-travado-motivo"></span></div>
     ${programado ? `<div class="card-programado-banner">PROGRAMADO${dataProgramada ? ` PARA ${dataProgramada}` : ""}</div>` : ""}
     <div class="card-header">
       <span class="badge-prioridade">${prioridade}</span>
-      <span class="card-numero">#${numero}</span>
-      <span class="badge-categoria ${isAt ? "badge-at" : ""}">${badgeTexto}</span>
-      ${mostrarSetor ? `<span class="card-setor">${item.fields.Setor || ""}</span>` : ""}
+      <span class="card-numero"></span>
+      <span class="badge-categoria"></span>
+      ${emGrupo ? `<span class="badge-grupo"></span>` : ""}
+      ${acessoTodos ? `<span class="card-setor"></span>` : ""}
     </div>
     <div class="card-body">
-      <p class="card-cliente">${cliente}</p>
-      ${prazoHtml ? `<p class="card-prazo">${prazoHtml}</p>` : ""}
+      <p class="card-cliente"></p>
+      <p class="card-prazo"></p>
     </div>
+    ${emGrupo ? `
+    <div class="grupo-nav">
+      <button class="grupo-nav-btn grupo-anterior">‹ Pedido anterior</button>
+      <span class="grupo-indicador"></span>
+      <button class="grupo-nav-btn grupo-proximo">Próximo pedido ›</button>
+    </div>` : ""}
     <div class="card-pdf-wrap">
       <div class="pdf-placeholder">Carregando PDF...</div>
     </div>
@@ -512,35 +558,78 @@ function renderCard(pedido, item, prioridade) {
 
   if (travado) {
     card.classList.add("card-travado");
+    const banner = card.querySelector(".card-travado-banner");
+    banner.hidden = false;
+    banner.querySelector(".card-travado-motivo").textContent = motivo;
   }
 
-  card.querySelector(".btn-finalizar").addEventListener("click", () => handleFinalizar(item, card));
+  if (acessoTodos) card.querySelector(".card-setor").textContent = primeiro.fields.Setor || "";
+  if (emGrupo) card.querySelector(".badge-grupo").textContent = `Grupo ${nomeGrupo} · ${membros.length} pedidos`;
+
+  card.indiceMembro = 0;
+  card.pdfSeq = 0;
+
+  // Mostra os dados do pedido da vez (número, categoria, cliente, prazo) e, se pedido, carrega o PDF dele.
+  function mostrarMembro(indice, carregarPdf) {
+    const { pedido } = membros[indice];
+    const categoria = pedido[f.categoria2] || "-";
+    const badge = card.querySelector(".badge-categoria");
+
+    card.indiceMembro = indice;
+    card.querySelector(".card-numero").textContent = `#${pedido[f.title] || "-"}`;
+    badge.textContent = categoria;
+    badge.classList.toggle("badge-at", categoria === "AT");
+    card.querySelector(".card-cliente").textContent = pedido[f.cliente] || "-";
+    preencherPrazo(card.querySelector(".card-prazo"), pedido[f.dataFabrica]);
+
+    if (emGrupo) {
+      card.querySelector(".grupo-indicador").textContent = `Pedido ${indice + 1} de ${membros.length}`;
+      card.querySelector(".grupo-anterior").disabled = indice === 0;
+      card.querySelector(".grupo-proximo").disabled = indice === membros.length - 1;
+    }
+
+    if (carregarPdf) {
+      card.pdfSeq++;
+      card.querySelector(".card-pdf-wrap").innerHTML = '<div class="pdf-placeholder">Carregando PDF...</div>';
+      carregarPdfDoCard(pedido, card);
+    }
+  }
+
+  mostrarMembro(0, false);
+
+  if (emGrupo) {
+    card.querySelector(".grupo-anterior").onclick = () => mostrarMembro(card.indiceMembro - 1, true);
+    card.querySelector(".grupo-proximo").onclick = () => mostrarMembro(card.indiceMembro + 1, true);
+  }
+
+  card.querySelector(".btn-finalizar").addEventListener("click", () => handleFinalizar(itens, card));
 
   const btnTravar = card.querySelector(".btn-travar, .btn-destravar");
   if (btnTravar) {
-    vincularBotaoTravar(btnTravar, item, card, travado);
+    vincularBotaoTravar(btnTravar, itens, card, travado);
   }
 
-  card.carregarPdf = () => carregarPdfDoCard(pedido, card);
+  card.carregarPdf = () => carregarPdfDoCard(membros[card.indiceMembro].pedido, card);
   demandasCardsEl.appendChild(card);
   observadorPdf.observe(card);
 }
 
-function vincularBotaoTravar(btn, item, card, travado) {
+function vincularBotaoTravar(btn, itens, card, travado) {
   if (travado) {
     btn.className = "btn-destravar";
     btn.textContent = "🔓 DESTRAVAR";
-    btn.onclick = () => handleDestravar(item, card, btn);
+    btn.onclick = () => handleDestravar(itens, card, btn);
   } else {
     btn.className = "btn-travar";
     btn.textContent = "🔒 TRAVAR";
-    btn.onclick = () => handleTravar(item, card, btn);
+    btn.onclick = () => handleTravar(itens, card, btn);
   }
 }
 
-async function configurarVisualizadorPdf(blob, containerEl) {
+async function configurarVisualizadorPdf(blob, containerEl, aindaValido = () => true) {
   const arrayBuffer = await blob.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  if (!aindaValido()) return;
   let paginaAtual = 1;
 
   containerEl.innerHTML = "";
@@ -618,6 +707,8 @@ async function carregarPdfDoCard(pedido, card) {
   const linkField = pedido[f.url];
   const wrap = card.querySelector(".card-pdf-wrap");
   const placeholder = card.querySelector(".pdf-placeholder");
+  const seq = card.pdfSeq;
+  const aindaValido = () => card.pdfSeq === seq;
 
   if (!linkField) {
     placeholder.textContent = "Este pedido não possui PDF vinculado.";
@@ -627,14 +718,32 @@ async function carregarPdfDoCard(pedido, card) {
   try {
     const itemId = typeof linkField === "object" ? linkField.Id || linkField.id : linkField;
     const blob = await obterPdfBlob(itemId);
-    await configurarVisualizadorPdf(blob, wrap);
+    if (!aindaValido()) return;
+    await configurarVisualizadorPdf(blob, wrap, aindaValido);
   } catch (err) {
     console.error(err);
     placeholder.textContent = "Não foi possível carregar o PDF.";
   }
 }
 
-async function handleFinalizar(item, card) {
+// Num card de grupo, a ação vale pra todos os pedidos do grupo (a programação deles é a mesma).
+async function atualizarRegistros(itens, campos) {
+  const resultados = await Promise.allSettled(itens.map((item) =>
+    graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(campos)
+    }).then(() => Object.assign(item.fields, campos))
+  ));
+
+  const falhas = resultados.filter((r) => r.status === "rejected");
+  if (falhas.length > 0) {
+    falhas.forEach((r) => console.error(r.reason));
+    throw new Error(`${falhas.length} de ${itens.length} registros não foram atualizados`);
+  }
+}
+
+async function handleFinalizar(itens, card) {
   const codigo = window.prompt("Digite o código de confirmação:");
   if (codigo === null) return;
   if (codigo !== "000") {
@@ -643,13 +752,9 @@ async function handleFinalizar(item, card) {
   }
 
   try {
-    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        Status: "Concluído",
-        DataConclusao: new Date().toISOString()
-      })
+    await atualizarRegistros(itens, {
+      Status: "Concluído",
+      DataConclusao: new Date().toISOString()
     });
     card.remove();
     if (acessoTodos) {
@@ -661,7 +766,7 @@ async function handleFinalizar(item, card) {
   }
 }
 
-async function handleTravar(item, card, btn) {
+async function handleTravar(itens, card, btn) {
   const codigo = window.prompt("Digite o código de confirmação:");
   if (codigo === null) return;
   if (codigo !== "000") {
@@ -673,31 +778,21 @@ async function handleTravar(item, card, btn) {
   if (motivo === null) return;
 
   try {
-    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        Status: "Parado",
-        MotivoParada: motivo
-      })
-    });
-
-    item.fields.Status = "Parado";
-    item.fields.MotivoParada = motivo;
+    await atualizarRegistros(itens, { Status: "Parado", MotivoParada: motivo });
 
     card.classList.add("card-travado");
     const banner = card.querySelector(".card-travado-banner");
     banner.hidden = false;
     banner.querySelector(".card-travado-motivo").textContent = motivo;
 
-    vincularBotaoTravar(btn, item, card, true);
+    vincularBotaoTravar(btn, itens, card, true);
   } catch (err) {
     console.error(err);
     alert("Não foi possível travar o pedido.");
   }
 }
 
-async function handleDestravar(item, card, btn) {
+async function handleDestravar(itens, card, btn) {
   const codigo = window.prompt("Digite o código:");
   if (codigo === null) return;
   if (codigo !== "000") {
@@ -706,24 +801,14 @@ async function handleDestravar(item, card, btn) {
   }
 
   try {
-    await graphFetch(`/sites/${siteId}/lists/${programacaoListId}/items/${item.id}/fields`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        Status: "Em Andamento",
-        MotivoParada: ""
-      })
-    });
-
-    item.fields.Status = "Em Andamento";
-    item.fields.MotivoParada = "";
+    await atualizarRegistros(itens, { Status: "Em Andamento", MotivoParada: "" });
 
     card.classList.remove("card-travado");
     const banner = card.querySelector(".card-travado-banner");
     banner.hidden = true;
     banner.querySelector(".card-travado-motivo").textContent = "";
 
-    vincularBotaoTravar(btn, item, card, false);
+    vincularBotaoTravar(btn, itens, card, false);
   } catch (err) {
     console.error(err);
     alert("Não foi possível destravar o pedido.");

@@ -12,7 +12,8 @@ const CONFIG = {
     entradaEmail: "DataHora",
     dataFabrica: "DataF_x00e1_brica",
     categoria2: "AT_x002c_Cort_x002c_Ret_x002e_",
-    url: "Linkpdf2"
+    url: "Linkpdf2",
+    grupo: "GrupoPedido"
   },
   // O valor "Todos" dá acesso de concluir/travar/destravar em qualquer setor —
   // basta usar esse valor pra um e-mail, sem precisar mexer em código.
