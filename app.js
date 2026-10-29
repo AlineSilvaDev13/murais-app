@@ -213,21 +213,9 @@ function aplicarFiltros() {
   const tipo = filtroTipoEl.value;
   let visiveis = 0;
 
-  const cards = [...demandasCardsEl.querySelectorAll(".demanda-card")];
-  const chaveGrupo = (card) => `${card.dataset.grupo}||${card.dataset.setor}`;
-
-  // Se a busca bate num pedido de um grupo, os outros membros do grupo vêm junto.
-  const gruposEncontrados = new Set();
-  if (termo) {
-    cards.forEach((card) => {
-      if (card.dataset.grupo && card.dataset.busca.includes(termo)) gruposEncontrados.add(chaveGrupo(card));
-    });
-  }
-
-  cards.forEach((card) => {
+  demandasCardsEl.querySelectorAll(".demanda-card").forEach((card) => {
     const okSetor = currentSetor === "Todos" || card.dataset.setor === currentSetor;
-    const okBusca = !termo || card.dataset.busca.includes(termo)
-      || (card.dataset.grupo && gruposEncontrados.has(chaveGrupo(card)));
+    const okBusca = !termo || card.dataset.busca.includes(termo);
     const okTipo = tipo === "todos" || card.dataset.tipo === tipo;
     const mostrar = okSetor && okBusca && okTipo;
 
@@ -238,34 +226,8 @@ function aplicarFiltros() {
     }
   });
 
-  atualizarGrupos();
   contadorPedidosEl.textContent = `${visiveis} pedido(s)`;
   semResultadosEl.hidden = visiveis !== 0;
-}
-
-// Atualiza o título "Grupo X · N pedidos" e esconde/remove grupos sem cards visíveis.
-function atualizarGrupos() {
-  demandasCardsEl.querySelectorAll(".grupo-wrapper").forEach((wrapper) => {
-    const cards = [...wrapper.querySelectorAll(".demanda-card")];
-    if (cards.length === 0) {
-      wrapper.remove();
-      return;
-    }
-    const visiveis = cards.filter((c) => !c.hidden).length;
-    wrapper.hidden = visiveis === 0;
-    wrapper.querySelector(".grupo-titulo").textContent =
-      `Grupo ${wrapper.dataset.grupo} · ${visiveis} ${visiveis === 1 ? "pedido" : "pedidos"}`;
-  });
-}
-
-function criarGrupoWrapper(nomeGrupo) {
-  const wrapper = document.createElement("section");
-  wrapper.className = "grupo-wrapper";
-  wrapper.dataset.grupo = nomeGrupo;
-  const titulo = document.createElement("div");
-  titulo.className = "grupo-titulo";
-  wrapper.appendChild(titulo);
-  return wrapper;
 }
 
 const CACHE_IDS_KEY = "murais_ids_v1";
@@ -477,44 +439,16 @@ async function carregarDemandas() {
     return dataA - dataB;
   });
 
-  // Pedidos com o mesmo GrupoPedido (2 ou mais, no mesmo setor) ficam juntos num bloco, na posição do mais urgente.
-  const nomeGrupo = (d) => String(d.pedido[f.grupo] || "").trim();
-  const chaveGrupo = (d) => (nomeGrupo(d) ? `${nomeGrupo(d)}||${d.item.fields.Setor || ""}` : "");
-  const tamanhoGrupo = new Map();
-  demandas.forEach((d) => {
-    const chave = chaveGrupo(d);
-    if (chave) tamanhoGrupo.set(chave, (tamanhoGrupo.get(chave) || 0) + 1);
-  });
-
-  const gruposJaMontados = new Set();
-  let numero = 0;
-
-  demandas.forEach((demanda) => {
-    const chave = chaveGrupo(demanda);
-
-    if (chave && tamanhoGrupo.get(chave) >= 2) {
-      if (gruposJaMontados.has(chave)) return;
-      gruposJaMontados.add(chave);
-
-      const nome = nomeGrupo(demanda);
-      const wrapper = criarGrupoWrapper(nome);
-      demandasCardsEl.appendChild(wrapper);
-      demandas
-        .filter((d) => chaveGrupo(d) === chave)
-        .forEach((d) => renderCard(d.pedido, d.item, ++numero, wrapper, nome));
-    } else {
-      renderCard(demanda.pedido, demanda.item, ++numero, demandasCardsEl, null);
-    }
+  demandas.forEach((demanda, index) => {
+    renderCard(demanda.pedido, demanda.item, index + 1);
   });
 
   if (acessoTodos) {
     aplicarFiltros();
-  } else {
-    atualizarGrupos();
   }
 }
 
-function renderCard(pedido, item, prioridade, container, nomeGrupo) {
+function renderCard(pedido, item, prioridade) {
   const f = CONFIG.fields;
   const card = document.createElement("article");
   card.className = "demanda-card";
@@ -550,7 +484,6 @@ function renderCard(pedido, item, prioridade, container, nomeGrupo) {
 
   const mostrarSetor = acessoTodos;
 
-  card.dataset.grupo = nomeGrupo || "";
   card.dataset.setor = item.fields.Setor || "";
   card.dataset.tipo = isAt ? "AT" : "normal";
   card.dataset.busca = normalizarTexto(`${numero} ${cliente}`);
@@ -562,7 +495,6 @@ function renderCard(pedido, item, prioridade, container, nomeGrupo) {
       <span class="badge-prioridade">${prioridade}</span>
       <span class="card-numero">#${numero}</span>
       <span class="badge-categoria ${isAt ? "badge-at" : ""}">${badgeTexto}</span>
-      ${nomeGrupo ? `<span class="badge-grupo"></span>` : ""}
       ${mostrarSetor ? `<span class="card-setor">${item.fields.Setor || ""}</span>` : ""}
     </div>
     <div class="card-body">
@@ -590,11 +522,7 @@ function renderCard(pedido, item, prioridade, container, nomeGrupo) {
   }
 
   card.carregarPdf = () => carregarPdfDoCard(pedido, card);
-  if (nomeGrupo) {
-    card.querySelector(".badge-grupo").textContent = `Grupo ${nomeGrupo}`;
-  }
-
-  container.appendChild(card);
+  demandasCardsEl.appendChild(card);
   observadorPdf.observe(card);
 }
 
@@ -726,8 +654,6 @@ async function handleFinalizar(item, card) {
     card.remove();
     if (acessoTodos) {
       aplicarFiltros();
-    } else {
-      atualizarGrupos();
     }
   } catch (err) {
     console.error(err);
